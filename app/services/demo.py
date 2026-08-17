@@ -2,8 +2,7 @@ import hashlib
 from fastapi import HTTPException, status
 from app.config import settings
 from app.database import get_db_context
-from app.models import User, Case, Evidence, AuditLog, DemoState, UserDevice, UserRole
-from app.security.password import hash_password
+from app.models import User, Case, Evidence, AuditLog, DemoState, UserDevice
 from app.services.audit import record_audit
 from app.services.evidence import generate_storage_filename, compute_sha256_bytes
 from app.storage import storage
@@ -166,41 +165,22 @@ def reset_demo_data(actor_id: int) -> dict:
 
         storage.put(key, content)
 
-        demo_admin = User(
-            username="demo_admin",
-            email="demo_admin@evidentia.local",
-            password_hash=hash_password("DemoPass123!"),
-            role=UserRole.ADMIN,
-            totp_enabled=False,
-        )
-        db.add(demo_admin)
-        db.flush()
+        actor = db.query(User).filter(User.id == actor_id).first()
+        if not actor:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Actor not found")
 
-        demo_user = User(
-            username="demo_officer",
-            email="demo_officer@evidentia.local",
-            password_hash=hash_password("DemoPass123!"),
-            role=UserRole.INVESTIGATOR,
-            totp_enabled=False,
-        )
-        db.add(demo_user)
-        db.flush()
-
-        record_audit(demo_admin.id, "AUTH_REGISTER", "User", demo_admin.id, {"username": demo_admin.username}, db=db)
-        record_audit(demo_admin.id, "AUTH_LOGIN_SUCCESS", "User", demo_admin.id, {"username": demo_admin.username}, db=db)
-        record_audit(demo_user.id, "AUTH_REGISTER", "User", demo_user.id, {"username": demo_user.username}, db=db)
-        record_audit(demo_user.id, "AUTH_LOGIN_SUCCESS", "User", demo_user.id, {"username": demo_user.username}, db=db)
+        record_audit(actor.id, "AUTH_LOGIN_SUCCESS", "User", actor.id, {"username": actor.username}, db=db)
 
         case = Case(
-            case_number=f"CASE-{demo_user.id:04d}-0001",
+            case_number=f"CASE-{actor.id:04d}-0001",
             title="Demo Case: Theft at Warehouse 7",
             description="Seeded automatically by Evidentia Demo Mode.",
-            created_by=demo_user.id,
+            created_by=actor.id,
         )
         db.add(case)
         db.flush()
         record_audit(
-            demo_user.id, "CASE_CREATED", "Case", case.id,
+            actor.id, "CASE_CREATED", "Case", case.id,
             {"case_number": case.case_number, "title": case.title}, db=db,
         )
 
@@ -212,27 +192,27 @@ def reset_demo_data(actor_id: int) -> dict:
             sha256_hash=sha256_hash,
             file_size=len(content),
             mime_type="text/plain",
-            uploaded_by=demo_user.id,
+            uploaded_by=actor.id,
         )
         db.add(evidence)
         db.flush()
         record_audit(
-            demo_user.id, "EVIDENCE_UPLOADED", "Evidence", evidence.id,
+            actor.id, "EVIDENCE_UPLOADED", "Evidence", evidence.id,
             {"case_id": case.id, "filename": evidence.filename, "sha256_hash": sha256_hash, "file_size": len(content)}, db=db,
         )
         record_audit(
-            demo_user.id, "EVIDENCE_INTEGRITY_VERIFIED", "Evidence", evidence.id,
+            actor.id, "EVIDENCE_INTEGRITY_VERIFIED", "Evidence", evidence.id,
             {"match": True, "original_hash": sha256_hash, "computed_hash": sha256_hash}, db=db,
         )
 
         record_audit(
             actor_id, "DEMO_DATA_RESET", None, None,
-            {"username": demo_user.username, "case_id": case.id, "evidence_id": evidence.id}, db=db,
+            {"username": actor.username, "case_id": case.id, "evidence_id": evidence.id}, db=db,
         )
         db.commit()
 
     return {
-        "username": demo_user.username,
+        "username": actor.username,
         "case_id": case.id,
         "evidence_id": evidence.id,
         "sha256_hash": sha256_hash,

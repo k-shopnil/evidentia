@@ -56,22 +56,22 @@ def register_admin(client):
 with TestClient(app) as client:
     register_admin(client)
     with SessionLocal() as db:
-        db.query(User).filter(User.username == UN_ADMIN).update({"role": "admin"})
-        db.commit()
-    print("1. admin registered")
+        a = db.query(User).filter(User.username == UN_ADMIN).first()
+        assert a.role.value == "admin", "first registered user must be admin"
+    print("1. first account registered -> admin")
 
     # --- Demo reset: rebuilds the full scenario ---
     r = client.post("/audit/demo-reset", data={"csrf_token": get_csrf(client, "/audit")}, follow_redirects=False)
     assert r.status_code == 302
     assert "msg=demo-reset" in r.headers["location"]
     with SessionLocal() as db:
-        demo_user = db.query(User).filter(User.username == "demo_officer").first()
-        assert demo_user, "demo user not seeded"
-        case = db.query(Case).filter(Case.created_by == demo_user.id).first()
+        users = db.query(User).all()
+        assert len(users) == 1 and users[0].username == UN_ADMIN, "reset must keep only the actor account"
+        case = db.query(Case).filter(Case.created_by == users[0].id).first()
         assert case, "demo case not seeded"
         evidence = db.query(Evidence).filter(Evidence.case_id == case.id).first()
         assert evidence
-    print("2. demo data seeded (user + case + evidence)")
+    print("2. demo data seeded (case + evidence, no fake accounts)")
 
     chain = verify_audit_chain()
     assert chain["valid"], f"chain invalid after seed: {chain}"
@@ -125,22 +125,57 @@ with TestClient(app) as client:
     assert chain["valid"], f"chain not restored: {chain}"
     print(f"7. audit restored -> chain VALID ({chain['total_records']} records)")
 
-    # --- Lockout + unlock via admin UI ---
+    # --- Second account is an officer; lockout + unlock via admin UI ---
+    UN_OFFICER = f"officer{TS}"
+    r = client.post(
+        "/register",
+        data={
+            "username": UN_OFFICER,
+            "email": f"{UN_OFFICER}@example.com",
+            "password": "CorrectHorseBatteryStaple1!",
+            "confirm_password": "CorrectHorseBatteryStaple1!",
+            "csrf_token": get_csrf(client),
+        },
+        follow_redirects=False,
+    )
+    assert r.status_code == 302
     with SessionLocal() as db:
-        db.query(User).filter(User.id == demo_user.id).update(
+        officer = db.query(User).filter(User.username == UN_OFFICER).first()
+        assert officer.role.value == "investigator", "second account must be an officer"
+        db.query(User).filter(User.id == officer.id).update(
             {"failed_attempts": 5, "locked_until": __import__("datetime").datetime.utcnow()}
         )
         db.commit()
+
+    # registration rotates the session -> re-login as admin to use the admin UI
     r = client.post(
-        f"/admin/users/{demo_user.id}/unlock",
+        "/login",
+        data={
+            "username": UN_ADMIN,
+            "password": "CorrectHorseBatteryStaple1!",
+            "csrf_token": get_csrf(client),
+        },
+        follow_redirects=False,
+    )
+    assert r.status_code == 302
+    with SessionLocal() as db:
+        admin_secret = db.query(User).filter(User.username == UN_ADMIN).first().totp_secret
+    r = client.post(
+        "/verify-2fa",
+        data={"totp_code": pyotp.TOTP(admin_secret).now(), "csrf_token": get_csrf(client, "/verify-2fa")},
+        follow_redirects=False,
+    )
+    assert r.status_code in (302, 307)
+    r = client.post(
+        f"/admin/users/{officer.id}/unlock",
         data={"csrf_token": get_csrf(client, "/admin/users")},
         follow_redirects=False,
     )
     assert r.status_code == 302
     with SessionLocal() as db:
-        u = db.query(User).filter(User.id == demo_user.id).first()
+        u = db.query(User).filter(User.id == officer.id).first()
         assert u.failed_attempts == 0 and u.locked_until is None
-    print("8. locked user unlocked via admin button")
+    print("8. officer locked -> unlocked via admin button")
 
     chain = verify_audit_chain()
     assert chain["valid"], f"final chain invalid: {chain}"
