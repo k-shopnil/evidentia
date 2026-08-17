@@ -5,7 +5,7 @@ from typing import Optional
 from app.config import settings
 
 
-def send_email(to_email: str, subject: str, body: str, is_html: bool = False) -> bool:
+def send_email(to_email: str, subject: str, body: str, is_html: bool = False, html_body: Optional[str] = None) -> bool:
     if not settings.SMTP_HOST or not settings.SMTP_USERNAME or not settings.SMTP_PASSWORD:
         return False
 
@@ -15,10 +15,9 @@ def send_email(to_email: str, subject: str, body: str, is_html: bool = False) ->
         msg["From"] = settings.SMTP_FROM
         msg["To"] = to_email
 
+        msg.attach(MIMEText(body, "plain"))
         if is_html:
-            msg.attach(MIMEText(body, "html"))
-        else:
-            msg.attach(MIMEText(body, "plain"))
+            msg.attach(MIMEText(html_body or body, "html"))
 
         with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT) as server:
             if settings.SMTP_USE_TLS:
@@ -81,7 +80,13 @@ please contact your system administrator immediately.
 
 This is an automated security notification from Evidentia.
 """
-    return send_email(user_email, subject, body, is_html=True) or send_email(user_email, subject, body)
+    return send_email(
+        user_email,
+        subject,
+        body,
+        is_html=True,
+        html_body=_new_device_html(username, device_name, device_id, timestamp, ip),
+    )
 
 
 def send_sms(to_phone: str, message: str) -> bool:
