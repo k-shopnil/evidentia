@@ -93,6 +93,55 @@
     <div class="col-12">
         <div class="card">
             <div class="card-header">
+                <h5 class="mb-0">Security Alerts</h5>
+            </div>
+            <div class="card-body">
+                {% if recent_alerts %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Device</th>
+                                <th>Channel</th>
+                                <th>Delivery</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for alert in recent_alerts %}
+                            <tr>
+                                <td>{{ alert.timestamp }}</td>
+                                <td>{{ alert.details.get('device_name', '-') }}</td>
+                                <td><span class="badge bg-secondary">{{ alert.details.get('channel', '-') }}</span></td>
+                                <td>
+                                    {% if alert.details.get('delivered') %}
+                                    <span class="badge bg-success">Delivered</span>
+                                    {% else %}
+                                    <span class="badge bg-danger">Not sent<span class="small"> - {{ alert.details.get('reason', 'no smtp/twilio configured') }}</span></span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <p class="text-muted small mb-0 mt-2">Alerts are sent by Email (SMTP) or SMS (Twilio) whenever a new device signs in.</p>
+                {% else %}
+                <div class="empty-state">
+                    <div class="dot"></div>
+                    <h4>No security alerts yet</h4>
+                    <p class="mb-0">A new-device login from an unrecognized browser or location will raise an alert here.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
                 <h5 class="mb-0">Recent Audit Events</h5>
             </div>
             <div class="card-body">

@@ -18,7 +18,8 @@ from app.security.auth import (
 )
 from app.security.rate_limit import limiter
 from app.services.audit import record_audit
-from app.services.email import send_new_device_alert, send_account_locked_alert
+from app.services.email import send_account_locked_alert
+from app.services.alerts import notify_new_device
 from app.templating import templates
 
 
@@ -134,9 +135,9 @@ async def login_post(
             action="AUTH_NEW_DEVICE",
             details={"device_id": device_fingerprint, "device_name": device_name}
         )
-        send_new_device_alert(user.email, user.username, device_name, device_fingerprint, 
-                             utcnow().isoformat(), request.client.host)
-    
+        notify_new_device(user.id, device_name, device_fingerprint,
+                          request.client.host or "", utcnow().isoformat())
+
     session_data = {
         "session_id": session_id or pyotp.random_base32(),
         "auth_state": AUTH_STATE_AUTHENTICATED,
@@ -163,6 +164,7 @@ async def register_post(
     request: Request,
     username: str = Form(...),
     email: str = Form(...),
+    phone: str = Form(""),
     password: str = Form(...),
     confirm_password: str = Form(...),
     csrf_token: str = Form(...),
@@ -212,6 +214,7 @@ async def register_post(
     user = User(
         username=username,
         email=email,
+        phone=phone.strip() or None,
         password_hash=password_hash,
         role=UserRole.ADMIN if is_first_user else UserRole.INVESTIGATOR,
     )
@@ -318,9 +321,9 @@ async def verify_2fa_post(
             action="AUTH_NEW_DEVICE",
             details={"device_id": device_fingerprint, "device_name": device_name}
         )
-        send_new_device_alert(user.email, user.username, device_name, device_fingerprint,
-                             utcnow().isoformat(), request.client.host)
-    
+        notify_new_device(user.id, device_name, device_fingerprint,
+                          request.client.host or "", utcnow().isoformat())
+
     record_audit(user_id=user.id, action="AUTH_2FA_SUCCESS", details={"device_id": device_fingerprint})
     record_audit(user_id=user.id, action="AUTH_LOGIN_SUCCESS", details={"device_id": device_fingerprint})
     

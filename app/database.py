@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import declarative_base, sessionmaker, Session
 from contextlib import contextmanager
 from app.config import settings
@@ -46,3 +46,21 @@ def get_db_context():
 def init_db():
     from app import models
     Base.metadata.create_all(bind=engine)
+    _ensure_column("users", "phone", "VARCHAR(32)")
+
+
+def _ensure_column(table: str, column: str, coltype: str) -> None:
+    try:
+        if settings.DATABASE_URL.startswith("sqlite"):
+            with engine.connect() as conn:
+                cols = [row[1] for row in conn.execute(text(f"PRAGMA table_info({table})"))]
+            if column not in cols:
+                with engine.connect() as conn:
+                    conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {column} {coltype}"))
+                    conn.commit()
+        else:
+            with engine.connect() as conn:
+                conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {column} {coltype}"))
+                conn.commit()
+    except Exception:
+        pass

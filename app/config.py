@@ -38,6 +38,10 @@ class Settings:
     SMTP_FROM: str = os.getenv("SMTP_FROM", "Evidentia Security <security@evidentia.local>")
     SMTP_USE_TLS: bool = os.getenv("SMTP_USE_TLS", "true").lower() == "true"
 
+    TWILIO_ACCOUNT_SID: str = os.getenv("TWILIO_ACCOUNT_SID", "")
+    TWILIO_AUTH_TOKEN: str = os.getenv("TWILIO_AUTH_TOKEN", "")
+    TWILIO_FROM_NUMBER: str = os.getenv("TWILIO_FROM_NUMBER", "")
+
     EVIDENCE_STORAGE_PATH: Path = BASE_DIR / os.getenv("EVIDENCE_STORAGE_PATH", "./app/storage/evidence")
     MAX_FILE_SIZE_MB: int = int(os.getenv("MAX_FILE_SIZE_MB", "100"))
 

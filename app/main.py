@@ -63,6 +63,24 @@ async def dashboard(request: Request):
 
     with get_db_context() as db:
         evidence_count = db.query(Evidence).join(Case).filter(Case.created_by == user.id).count()
+        from sqlalchemy import desc
+        import json
+        from app.models import AuditLog
+        recent_alerts = (
+            db.query(AuditLog)
+            .filter(AuditLog.user_id == user.id, AuditLog.action == "SECURITY_ALERT_NEW_DEVICE")
+            .order_by(desc(AuditLog.id))
+            .limit(5)
+            .all()
+        )
+        recent_alerts = [
+            {
+                "id": a.id,
+                "timestamp": a.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+                "details": json.loads(a.details) if a.details else {},
+            }
+            for a in recent_alerts
+        ]
 
     recent_audits, _ = get_audit_logs(user_id=user.id, limit=10)
 
@@ -78,6 +96,7 @@ async def dashboard(request: Request):
             "cases": cases_list,
             "evidence_count": evidence_count,
             "recent_audits": recent_audits,
+            "recent_alerts": recent_alerts,
             "csrf_token": csrf_token,
         }
     )

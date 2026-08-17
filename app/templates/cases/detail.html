@@ -64,7 +64,7 @@
                 {% if case.status.value != 'closed' %}
                 <form method="post" action="/cases/{{ case.id }}/close" class="d-inline">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                    <button type="submit" class="btn btn-warning" onclick="return confirm('Close this case?')">Close Case</button>
+                    <button type="submit" class="btn btn-danger" onclick="return confirm('Close this case?')">Close Case</button>
                 </form>
                 {% endif %}
             </div>

@@ -27,6 +27,12 @@
                         <label for="email" class="form-label">Email</label>
                         <input type="email" class="form-control" id="email" name="email" required autocomplete="email">
                     </div>
+
+                    <div class="mb-3">
+                        <label for="phone" class="form-label">Phone (optional)</label>
+                        <input type="tel" class="form-control" id="phone" name="phone" placeholder="+8801XXXXXXXXX" autocomplete="tel" pattern="\+?[0-9]{7,15}">
+                        <div class="form-text">Used for SMS login alerts if configured.</div>
+                    </div>
                     
                     <div class="mb-3">
                         <label for="password" class="form-label">Password (min 12 characters)</label>
