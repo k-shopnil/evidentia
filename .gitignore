@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# Environment
+.env
+.env.local
+
+# Databases
+*.db
+*.sqlite
+*.sqlite3
+test_*.db
+
+# Storage
+app/storage/
+test_storage*/
+.storage/
+
+# Test artifacts
+test_chain.db
+test_cases.db
+test_demo.db
+ce_err.log
+chain_err.log
+
+# Vercel
+.vercel/
+
+# OS
+.DS_Store
+Thumbs.db

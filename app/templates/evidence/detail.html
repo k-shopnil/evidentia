@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block title %}{{ evidence.filename }} - {{ settings.APP_NAME }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1>{{ evidence.filename }}</h1>
+        <p class="text-muted">{{ case.case_number }} - {{ case.title }}</p>
+    </div>
+    <div>
+        <a href="/evidence/{{ evidence.id }}/download" class="btn btn-primary">Download</a>
+        <a href="/cases/{{ case.id }}" class="btn btn-outline-secondary ms-2">Back to Case</a>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">Evidence Information</div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">Original Filename</dt>
+                    <dd class="col-sm-8">{{ evidence.filename }}</dd>
+                    
+                    <dt class="col-sm-4">Stored Filename</dt>
+                    <dd class="col-sm-8"><code>{{ evidence.stored_filename }}</code></dd>
+                    
+                    <dt class="col-sm-4">File Size</dt>
+                    <dd class="col-sm-8">{{ (evidence.file_size / 1024 / 1024)|round(2) }} MB</dd>
+                    
+                    <dt class="col-sm-4">MIME Type</dt>
+                    <dd class="col-sm-8">{{ evidence.mime_type }}</dd>
+                    
+                    <dt class="col-sm-4">SHA-256 Hash</dt>
+                    <dd class="col-sm-8"><code>{{ evidence.sha256_hash }}</code></dd>
+                    
+                    <dt class="col-sm-4">Uploaded</dt>
+                    <dd class="col-sm-8">{{ evidence.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">Integrity Verification</div>
+            <div class="card-body">
+                {% if verify_result %}
+                <div class="alert alert-{% if verify_result.match %}success{% else %}danger{% endif %}">
+                    <strong>{% if verify_result.match %}✓ Integrity Verified{% else %}⚠ Integrity Compromised{% endif %}</strong>
+                    {% if not verify_result.match %}
+                    <br><small>Original: {{ verify_result.original_hash }}</small>
+                    <br><small>Computed: {{ verify_result.computed_hash }}</small>
+                    {% endif %}
+                </div>
+                {% endif %}
+                
+                <form method="post" action="/evidence/{{ evidence.id }}/verify" class="d-inline">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <button type="submit" class="btn btn-outline-primary">Verify Integrity</button>
+                </form>
+
+                {% if settings.DEMO_MODE %}
+                <form method="post" action="/evidence/{{ evidence.id }}/demo-tamper" class="d-inline ms-2" onsubmit="return confirm('Simulate tampering with this evidence file?')">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <button type="submit" class="btn btn-outline-danger">Simulate Tampering</button>
+                </form>
+                <form method="post" action="/evidence/{{ evidence.id }}/demo-restore" class="d-inline ms-2">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <button type="submit" class="btn btn-outline-success">Restore</button>
+                </form>
+                {% endif %}
+                
+                <form method="post" action="/evidence/{{ evidence.id }}/delete" class="d-inline ms-2" onsubmit="return confirm('Delete this evidence permanently?')">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <button type="submit" class="btn btn-outline-danger">Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block title %}{% if setup %}Setup 2FA{% else %}Verify 2FA{% endif %} - {{ settings.APP_NAME }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="mb-0">{% if setup %}Setup Two-Factor Authentication{% else %}Verify 2FA Code{% endif %}</h3>
+            </div>
+            <div class="card-body">
+                {% if error %}
+                <div class="alert alert-danger">{{ error }}</div>
+                {% endif %}
+                
+                {% if setup %}
+                <div class="text-center mb-4">
+                    <p>Scan this QR code with your authenticator app (Google Authenticator, Authy, etc.)</p>
+                    <img src="data:image/png;base64,{{ qr_code }}" alt="QR Code" class="img-fluid border rounded">
+                    <div class="mt-3">
+                        <p class="text-muted small">Or enter this secret manually:</p>
+                        <code class="text-break">{{ secret }}</code>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <form method="post" action="/verify-2fa">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    
+                    <div class="mb-3">
+                        <label for="totp_code" class="form-label">Enter 6-digit code from your authenticator app</label>
+                        <input type="text" class="form-control" id="totp_code" name="totp_code" required autocomplete="one-time-code" maxlength="6" pattern="\d{6}" autofocus>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary w-100">{% if setup %}Complete Setup{% else %}Verify{% endif %}</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

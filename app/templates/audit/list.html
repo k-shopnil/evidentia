@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+
+{% block title %}Audit Log - {{ settings.APP_NAME }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Audit Log</h1>
+    <div>
+        {% if settings.DEMO_MODE %}
+        <form method="post" action="/audit/demo-tamper" class="d-inline me-2" onsubmit="return confirm('Simulate tampering with the oldest audit record?')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <button type="submit" class="btn btn-outline-danger">Simulate Tampering</button>
+        </form>
+        <form method="post" action="/audit/demo-restore" class="d-inline me-2">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <button type="submit" class="btn btn-outline-success">Restore Chain</button>
+        </form>
+        <form method="post" action="/audit/demo-reset" class="d-inline me-2" onsubmit="return confirm('Rebuild all demo data? This wipes users, cases, evidence and the audit chain.')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <button type="submit" class="btn btn-warning">Reset Demo Data</button>
+        </form>
+        {% endif %}
+        <form method="post" action="/audit/verify" class="d-inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <button type="submit" class="btn btn-primary">Verify Chain</button>
+        </form>
+    </div>
+</div>
+
+{% if verify_result %}
+<div class="alert alert-{% if verify_result.valid %}success{% else %}danger{% endif %} mb-4">
+    <strong>{% if verify_result.valid %}✓ Audit Chain Valid{% else %}⚠ Tampering Detected{% endif %}</strong>
+    <br>Total Records: {{ verify_result.total_records }}
+    {% if verify_result.first_corruption_index is not none %}
+    <br>First Corruption at Index: {{ verify_result.first_corruption_index }}
+    {% endif %}
+    <br>{{ verify_result.message }}
+</div>
+{% endif %}
+
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span>Filters</span>
+        {% if filters.active %}
+        <a href="/audit" class="btn btn-sm btn-outline-secondary">Clear filters</a>
+        {% endif %}
+    </div>
+    <div class="card-body">
+        <form method="get" action="/audit" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label for="username" class="form-label">Username</label>
+                <input type="text" class="form-control" id="username" name="username" value="{{ filters.username }}" placeholder="e.g. officer">
+            </div>
+            <div class="col-md-2">
+                <label for="log_id" class="form-label">Log ID</label>
+                <input type="number" class="form-control" id="log_id" name="log_id" value="{{ filters.log_id }}" placeholder="Row ID" min="1">
+            </div>
+            <div class="col-md-3">
+                <label for="action" class="form-label">Action</label>
+                <select class="form-select" id="action" name="action">
+                    <option value="">All actions</option>
+                    {% for a in actions %}
+                    <option value="{{ a }}" {% if filters.action == a %}selected{% endif %}>{{ a }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label for="entity_type" class="form-label">Entity type</label>
+                <select class="form-select" id="entity_type" name="entity_type">
+                    <option value="">All entity types</option>
+                    {% for et in entity_types %}
+                    <option value="{{ et }}" {% if filters.entity_type == et %}selected{% endif %}>{{ et }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="start" class="form-label">From</label>
+                <input type="date" class="form-control" id="start" name="start" value="{{ filters.start }}">
+            </div>
+            <div class="col-md-3">
+                <label for="end" class="form-label">To</label>
+                <input type="date" class="form-control" id="end" name="end" value="{{ filters.end }}">
+            </div>
+            <div class="col-md-6 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary me-2">Apply Filters</button>
+                <span class="text-muted small">{{ total }} record{{ 's' if total != 1 }} found</span>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        {% if logs %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Time</th>
+                        <th>User</th>
+                        <th>Action</th>
+                        <th>Entity</th>
+                        <th>Details</th>
+                        <th>Hash</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in logs %}
+                    <tr>
+                        <td>{{ log.id }}</td>
+                        <td>{{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                        <td>{{ log.user_id or 'System' }}</td>
+                        <td><code>{{ log.action }}</code></td>
+                        <td>
+                            {% if log.entity_type %}
+                            {{ log.entity_type }}
+                            {% if log.entity_id %}
+                            #{{ log.entity_id }}
+                            {% endif %}
+                            {% else %}-
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if log.details %}
+                            <small>{{ log.details|pretty_details }}</small>
+                            {% else %}-
+                            {% endif %}
+                        </td>
+                        <td><code class="small">{{ log.current_hash[:16] }}...</code></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <nav>
+            <ul class="pagination justify-content-center">
+                {% if skip > 0 %}
+                <li class="page-item">
+                    <a class="page-link" href="/audit?skip={{ [skip - limit, 0]|max }}&limit={{ limit }}&username={{ filters.username|urlencode }}&log_id={{ filters.log_id }}&action={{ filters.action|urlencode }}&entity_type={{ filters.entity_type|urlencode }}&start={{ filters.start }}&end={{ filters.end }}">Previous</a>
+                </li>
+                {% endif %}
+                <li class="page-item disabled"><span class="page-link">Page {{ (skip // limit) + 1 }}</span></li>
+                {% if skip + limit < total %}
+                <li class="page-item">
+                    <a class="page-link" href="/audit?skip={{ skip + limit }}&limit={{ limit }}&username={{ filters.username|urlencode }}&log_id={{ filters.log_id }}&action={{ filters.action|urlencode }}&entity_type={{ filters.entity_type|urlencode }}&start={{ filters.start }}&end={{ filters.end }}">Next</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% else %}
+        <p class="text-muted text-center py-4">No audit records found</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

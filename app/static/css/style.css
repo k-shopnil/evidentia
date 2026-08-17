@@ -1,0 +1,24 @@
+body {
+    background-color: #f8f9fa;
+}
+
+.card {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+}
+
+code {
+    word-break: break-all;
+}
+
+.footer {
+    margin-top: auto;
+}
+
+.badge {
+    text-transform: uppercase;
+    font-size: 0.75rem;
+}
+
+.navbar-brand {
+    letter-spacing: 0.5px;
+}
