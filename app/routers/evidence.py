@@ -88,6 +88,14 @@ async def upload_evidence_post(
             {"request": request, "user": user, "case": case, "error": e.detail, "csrf_token": get_csrf_token_for_session(request)},
             status_code=e.status_code
         )
+    except Exception as e:
+        from app.services.cases import get_case_by_id
+        case = get_case_by_id(case_id, user.id, user.role.value)
+        return templates.TemplateResponse(
+            "evidence/upload.html",
+            {"request": request, "user": user, "case": case, "error": f"Upload failed: {e}", "csrf_token": get_csrf_token_for_session(request)},
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
 
 
 @router.get("/evidence/{evidence_id}", response_class=HTMLResponse)

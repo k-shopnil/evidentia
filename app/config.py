@@ -41,7 +41,10 @@ class Settings:
     EVIDENCE_STORAGE_PATH: Path = BASE_DIR / os.getenv("EVIDENCE_STORAGE_PATH", "./app/storage/evidence")
     MAX_FILE_SIZE_MB: int = int(os.getenv("MAX_FILE_SIZE_MB", "100"))
 
-    STORAGE_BACKEND: str = os.getenv("STORAGE_BACKEND", "local")
+    STORAGE_BACKEND: str = os.getenv(
+        "STORAGE_BACKEND",
+        "s3" if os.getenv("R2_ENDPOINT_URL") else "local",
+    )
     R2_ACCOUNT_ID: str = os.getenv("R2_ACCOUNT_ID", "")
     R2_ENDPOINT_URL: str = os.getenv("R2_ENDPOINT_URL", "")
     R2_ACCESS_KEY_ID: str = os.getenv("R2_ACCESS_KEY_ID", "")
