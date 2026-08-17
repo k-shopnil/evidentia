@@ -48,7 +48,7 @@ html {
 body {
     background-color: var(--bg);
     color: var(--text);
-    font-family: var(--font-body);
+    font-family: var(--font-display);
     font-size: 0.95rem;
     line-height: 1.6;
     min-height: 100vh;
@@ -72,7 +72,6 @@ a:hover {
 }
 
 h1, h2, h3, h4, h5, h6 {
-    font-family: var(--font-display);
     font-weight: 600;
     letter-spacing: -0.01em;
     color: var(--text);
@@ -96,9 +95,9 @@ main h1::before {
 }
 
 .eyebrow {
-    font-family: var(--font-mono);
-    font-size: 0.68rem;
-    font-weight: 500;
+    font-family: var(--font-display);
+    font-size: 0.7rem;
+    font-weight: 600;
     letter-spacing: 0.16em;
     text-transform: uppercase;
     color: var(--muted);
@@ -156,16 +155,16 @@ code, kbd {
 }
 
 .navbar .nav-user {
-    font-family: var(--font-mono);
-    font-size: 0.72rem;
+    font-family: var(--font-display);
+    font-size: 0.74rem;
     color: var(--faint);
-    letter-spacing: 0.04em;
+    letter-spacing: 0.06em;
 }
 
 .role-chip {
-    font-family: var(--font-mono);
-    font-size: 0.62rem;
-    font-weight: 500;
+    font-family: var(--font-display);
+    font-size: 0.66rem;
+    font-weight: 600;
     letter-spacing: 0.14em;
     text-transform: uppercase;
     color: var(--accent);
@@ -219,15 +218,15 @@ code, kbd {
 }
 
 .display-6 {
-    font-family: var(--font-mono);
+    font-family: var(--font-display);
     font-size: 2rem;
     color: var(--accent);
     letter-spacing: -0.02em;
 }
 
 dt {
-    font-family: var(--font-mono);
-    font-size: 0.68rem;
+    font-family: var(--font-display);
+    font-size: 0.72rem;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--muted);
@@ -268,11 +267,12 @@ dd {
 .btn-outline-primary {
     --bs-btn-color: var(--accent);
     --bs-btn-border-color: rgba(248, 255, 32, 0.45);
-    --bs-btn-hover-color: #000;
-    --bs-btn-hover-bg: var(--accent);
+    --bs-btn-hover-color: var(--accent);
+    --bs-btn-hover-bg: rgba(248, 255, 32, 0.10);
     --bs-btn-hover-border-color: var(--accent);
-    --bs-btn-active-color: #000;
-    --bs-btn-active-bg: var(--accent);
+    --bs-btn-active-color: var(--accent);
+    --bs-btn-active-bg: rgba(248, 255, 32, 0.16);
+    --bs-btn-active-border-color: var(--accent);
     --bs-btn-disabled-color: var(--accent);
     --bs-btn-disabled-border-color: rgba(248, 255, 32, 0.3);
 }
@@ -304,11 +304,14 @@ dd {
 .btn-outline-success {
     --bs-btn-color: var(--accent);
     --bs-btn-border-color: rgba(248, 255, 32, 0.45);
-    --bs-btn-hover-color: #000;
-    --bs-btn-hover-bg: var(--accent);
+    --bs-btn-hover-color: var(--accent);
+    --bs-btn-hover-bg: rgba(248, 255, 32, 0.10);
     --bs-btn-hover-border-color: var(--accent);
-    --bs-btn-active-color: #000;
-    --bs-btn-active-bg: var(--accent);
+    --bs-btn-active-color: var(--accent);
+    --bs-btn-active-bg: rgba(248, 255, 32, 0.16);
+    --bs-btn-active-border-color: var(--accent);
+    --bs-btn-disabled-color: var(--accent);
+    --bs-btn-disabled-border-color: rgba(248, 255, 32, 0.3);
 }
 
 .btn-warning {
@@ -390,13 +393,12 @@ input[type="file"]::file-selector-button {
     --bs-table-border-color: var(--hairline);
     --bs-table-hover-bg: rgba(255, 255, 255, 0.025);
     --bs-table-striped-bg: rgba(255, 255, 255, 0.015);
-    font-family: var(--font-mono);
-    font-size: 0.73rem;
+    font-size: 0.8rem;
     margin-bottom: 0;
 }
 .table thead th {
     font-family: var(--font-display);
-    font-size: 0.64rem;
+    font-size: 0.66rem;
     font-weight: 600;
     letter-spacing: 0.12em;
     text-transform: uppercase;
@@ -424,13 +426,13 @@ input[type="file"]::file-selector-button {
 /* ---------- Badges / status dots ---------- */
 
 .badge {
-    font-family: var(--font-mono);
-    font-size: 0.64rem;
+    font-family: var(--font-display);
+    font-size: 0.68rem;
     font-weight: 600;
     letter-spacing: 0.1em;
     text-transform: uppercase;
     border-radius: 999px;
-    padding: 0.3rem 0.7rem 0.3rem 0.65rem;
+    padding: 0.28rem 0.7rem 0.28rem 0.65rem;
     background-color: transparent !important;
     border: 1px solid var(--hairline-strong);
     color: var(--muted) !important;
@@ -498,8 +500,8 @@ input[type="file"]::file-selector-button {
     font-size: 0.85rem;
 }
 .alert strong {
-    font-family: var(--font-mono);
-    letter-spacing: 0.06em;
+    font-weight: 600;
+    letter-spacing: 0.05em;
 }
 .alert-success {
     background: var(--surface);
@@ -536,8 +538,7 @@ input[type="file"]::file-selector-button {
     border: 1px solid var(--hairline-strong);
     border-radius: var(--radius);
     padding: 1rem 1.15rem;
-    font-family: var(--font-mono);
-    font-size: 0.74rem;
+    font-size: 0.8rem;
 }
 .intel-panel .row + .row {
     margin-top: 0.55rem;
@@ -555,6 +556,8 @@ input[type="file"]::file-selector-button {
 }
 .intel-panel .value.acc {
     color: var(--accent);
+    font-family: var(--font-mono);
+    font-size: 0.74rem;
 }
 
 /* ---------- Empty states ---------- */
@@ -589,8 +592,7 @@ input[type="file"]::file-selector-button {
     background: var(--surface);
     border: 1px solid var(--hairline-strong);
     color: var(--muted);
-    font-family: var(--font-mono);
-    font-size: 0.75rem;
+    font-size: 0.78rem;
     padding: 0.4rem 0.9rem;
 }
 .page-link:hover {
