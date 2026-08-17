@@ -59,6 +59,27 @@ def cmd_seed() -> int:
     return 0
 
 
+def cmd_make_admin() -> int:
+    args = sys.argv[2:]
+    if not args:
+        print("usage: python -m app.cli make-admin <username>")
+        return 1
+    username = args[0]
+    from app.models import UserRole
+
+    with get_db_context() as db:
+        user = db.query(User).filter(User.username == username).first()
+        if not user:
+            print(f"error: user '{username}' not found")
+            return 1
+        user.role = UserRole.ADMIN
+        db.commit()
+        print(f"{username} is now an admin")
+    from app.services.audit import record_audit
+    record_audit(user.id, "USER_ROLE_CHANGED", "User", user.id, {"role": "admin", "via": "cli"})
+    return 0
+
+
 def cmd_verify() -> int:
     chain = verify_audit_chain()
     print(f"chain valid: {chain['valid']} | records: {chain['total_records']}")
@@ -79,6 +100,8 @@ def main() -> int:
         return cmd_check()
     if command == "seed":
         return cmd_seed()
+    if command == "make-admin":
+        return cmd_make_admin()
     if command == "verify":
         return cmd_verify()
     print(f"unknown command: {command}")

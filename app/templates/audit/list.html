@@ -6,7 +6,7 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1>Audit Log</h1>
     <div>
-        {% if settings.DEMO_MODE %}
+        {% if settings.DEMO_MODE and user.role.value == 'admin' %}
         <form method="post" action="/audit/demo-tamper" class="d-inline me-2" onsubmit="return confirm('Simulate tampering with the oldest audit record?')">
             <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
             <button type="submit" class="btn btn-outline-danger">Simulate Tampering</button>

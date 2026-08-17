@@ -6,7 +6,7 @@ import pyotp
 
 from app.database import get_db
 from app.config import settings
-from app.models import User
+from app.models import User, UserRole
 from app.security.password import hash_password, verify_password
 from app.security.totp import generate_secret, get_totp_uri, generate_qr_code, verify_totp
 from app.security.csrf import get_csrf_token, validate_csrf_token
@@ -208,10 +208,12 @@ async def register_post(
     
     password_hash = hash_password(password)
     
+    is_first_user = db.query(User).count() == 0
     user = User(
         username=username,
         email=email,
         password_hash=password_hash,
+        role=UserRole.ADMIN if is_first_user else UserRole.INVESTIGATOR,
     )
     db.add(user)
     db.commit()

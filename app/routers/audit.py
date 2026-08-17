@@ -162,10 +162,8 @@ def _demo_redirect(msg: str) -> RedirectResponse:
 async def demo_tamper_audit(
     request: Request,
     csrf_token: str = Form(...),
-    user=Depends(get_current_user)
+    user=Depends(require_admin)
 ):
-    if not user:
-        return RedirectResponse(url="/login")
 
     session_data = session_manager.get_session_data(request)
     session_id = session_data.get("session_id") if session_data else ""
@@ -185,10 +183,8 @@ async def demo_tamper_audit(
 async def demo_restore_audit(
     request: Request,
     csrf_token: str = Form(...),
-    user=Depends(get_current_user)
+    user=Depends(require_admin)
 ):
-    if not user:
-        return RedirectResponse(url="/login")
 
     session_data = session_manager.get_session_data(request)
     session_id = session_data.get("session_id") if session_data else ""
@@ -208,10 +204,8 @@ async def demo_restore_audit(
 async def demo_reset(
     request: Request,
     csrf_token: str = Form(...),
-    user=Depends(get_current_user)
+    user=Depends(require_admin)
 ):
-    if not user:
-        return RedirectResponse(url="/login")
 
     session_data = session_manager.get_session_data(request)
     session_id = session_data.get("session_id") if session_data else ""

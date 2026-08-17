@@ -8,7 +8,7 @@ from app.database import get_db
 from app.config import settings
 from app.models import User, Evidence
 from app.security.csrf import get_csrf_token, validate_csrf_token
-from app.security.auth import session_manager, get_current_user, AUTH_STATE_AUTHENTICATED
+from app.security.auth import session_manager, get_current_user, require_admin, AUTH_STATE_AUTHENTICATED
 from app.services.evidence import (
     upload_evidence,
     verify_evidence_integrity,
@@ -236,10 +236,8 @@ async def demo_tamper_evidence(
     request: Request,
     evidence_id: int,
     csrf_token: str = Form(...),
-    user=Depends(get_current_user)
+    user=Depends(require_admin)
 ):
-    if not user:
-        return RedirectResponse(url="/login")
 
     session_data = session_manager.get_session_data(request)
     session_id = session_data.get("session_id") if session_data else ""
@@ -261,10 +259,8 @@ async def demo_restore_evidence(
     request: Request,
     evidence_id: int,
     csrf_token: str = Form(...),
-    user=Depends(get_current_user)
+    user=Depends(require_admin)
 ):
-    if not user:
-        return RedirectResponse(url="/login")
 
     session_data = session_manager.get_session_data(request)
     session_id = session_data.get("session_id") if session_data else ""

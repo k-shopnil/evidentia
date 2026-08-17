@@ -166,6 +166,16 @@ def reset_demo_data(actor_id: int) -> dict:
 
         storage.put(key, content)
 
+        demo_admin = User(
+            username="demo_admin",
+            email="demo_admin@evidentia.local",
+            password_hash=hash_password("DemoPass123!"),
+            role=UserRole.ADMIN,
+            totp_enabled=False,
+        )
+        db.add(demo_admin)
+        db.flush()
+
         demo_user = User(
             username="demo_officer",
             email="demo_officer@evidentia.local",
@@ -176,6 +186,8 @@ def reset_demo_data(actor_id: int) -> dict:
         db.add(demo_user)
         db.flush()
 
+        record_audit(demo_admin.id, "AUTH_REGISTER", "User", demo_admin.id, {"username": demo_admin.username}, db=db)
+        record_audit(demo_admin.id, "AUTH_LOGIN_SUCCESS", "User", demo_admin.id, {"username": demo_admin.username}, db=db)
         record_audit(demo_user.id, "AUTH_REGISTER", "User", demo_user.id, {"username": demo_user.username}, db=db)
         record_audit(demo_user.id, "AUTH_LOGIN_SUCCESS", "User", demo_user.id, {"username": demo_user.username}, db=db)
 
