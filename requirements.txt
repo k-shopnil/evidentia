@@ -17,4 +17,7 @@ psycopg[binary]==3.3.4
 mangum==0.19.0
 
 # Testing
-httpx==0.28.1twilio==9.5.2
+httpx==0.28.1
+
+# SMS alerts
+twilio==9.5.2
