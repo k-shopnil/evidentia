@@ -39,6 +39,7 @@
 - [Features](#features)
 - [Architecture](#architecture)
 - [Security & Integrity](#security--integrity)
+- [Supervisor Requirements — Where Each One Lives](#supervisor-requirements--where-each-one-lives)
 - [Getting Started](#getting-started)
 - [Environment Variables](#environment-variables)
 - [Demo Mode](#demo-mode)
@@ -127,17 +128,197 @@ flowchart LR
 
 ## Security & Integrity
 
-| Layer | Mechanism |
+### Jargon, unpacked
+
+| Term | Plain meaning |
 | --- | --- |
-| Passwords | Argon2id (via `argon2-cffi`) |
-| Session | Signed HttpOnly cookie, Secure + SameSite=Lax in production, 60 min expiry |
-| CSRF | Per-session token on every state-changing route |
-| 2FA | TOTP (RFC 6238, `pyotp`), QR enrollment, required on login |
-| Brute force | 5-attempt lockout (15 min) + SlowAPI rate limits |
-| Reset tokens | 256-bit random, stored as SHA-256 hashes, single-use, 60-min TTL |
-| Audit chain | SHA-256 hash chaining — every record binds to its predecessor; tampering is detectable |
-| Evidence | SHA-256 fingerprints, integrity check on download, MIME whitelist |
-| Errors | Enumeration-safe responses (login, password reset) |
+| **Argon2id** | A modern *password-hashing* algorithm — deliberately slow and memory-hungry, so even if the database file leaks, brute-forcing the stored hashes is impractical. |
+| **TOTP** | *Time-based One-Time Password* — the 6-digit code from your authenticator app (Google Authenticator, etc.). It changes every 30 seconds, so a stolen code is useless within a minute. |
+| **SHA-256 hash** | A fixed-length "digital fingerprint" of any data. Same input always produces the same output; a single changed byte produces a completely different fingerprint. |
+| **Hash chain** | Every audit record contains `sha256(previous record's hash + this record)`. Alter any record and every hash after it stops matching — tampering is mathematically provable. |
+| **CSRF** | *Cross-Site Request Forgery* — a malicious website tricking your logged-in browser into performing actions (e.g. creating a case) on your behalf. Blocked by requiring a token that only your session knows. |
+| **SQL injection** | Tricking an app into running attacker-written SQL by smuggling it inside a form field. Blocked by never building SQL strings by hand — the ORM always binds values as parameters. |
+| **XSS** | *Cross-Site Scripting* — injecting malicious JavaScript that runs in another user's browser (e.g. via a case title). Blocked by escaping every dynamic value on render. |
+| **Enumeration-safe** | An attacker cannot tell (from error messages or response timing) whether an email/username exists in the system. Failed logins and password-reset requests return identical outcomes. |
+| **Presigned URL** | A short-lived, signed download link (5-minute expiry) — the raw evidence files are never exposed through unsignable public URLs. |
+| **Signed session cookie** | The session is *cryptographically signed* with the server secret — anybody can read it, but nobody can forge or modify it. |
+
+### What is protected, where
+
+| Layer | Mechanism | File |
+| --- | --- | --- |
+| Passwords | Argon2id (time-cost 3, 64 MB memory) | `app/security/password.py` |
+| Sessions | Signed cookie (itsdangerous), HttpOnly + Secure + SameSite, 60-min expiry | `app/security/auth.py` |
+| CSRF | Per-session signed token on every POST form | `app/security/csrf.py` |
+| 2FA | TOTP with QR enrollment (`pyotp`), required at login | `app/security/totp.py` + `app/routers/auth.py` |
+| Brute force | 5-failed-attempt lockout (15 min) + rate limits on login/register/reset | `app/security/auth.py`, `app/config.py` |
+| Reset tokens | 256-bit random, stored **hashed** (SHA-256), single-use, 60-min TTL | `app/services/password_reset.py` |
+| Integrity | SHA-256 hash chain over every audit record; verifiable end-to-end | `app/services/audit.py` |
+| Evidence | SHA-256 fingerprints + re-verification on download | `app/services/storage.py` |
+| SQL injection | SQLAlchemy parameterized queries only — no raw SQL strings | all `db.query(...)` call sites |
+| XSS | Jinja2 auto-escaping on every template variable | `app/templating.py` |
+| Uploads | MIME whitelist + 100 MB cap + size/MIME rejects | `app/config.py`, `app/routers/evidence.py` |
+| Access | Role checks (`admin` vs `officer`) enforced server-side on every route | `app/security/auth.py` (`require_admin`) |
+| Errors | Enumeration-safe login and password-recovery responses | `app/routers/auth.py` |
+
+---
+
+## Supervisor Requirements — Where Each One Lives
+
+Every requirement from the brief is implemented, tested, and easy to point at during a walkthrough.
+
+### 1. Username & password login
+`app/routers/auth.py` (`/login`), `app/security/auth.py` (`verify_credentials`), template `app/templates/auth/login.html`.
+Passwords are checked against the stored Argon2id hash; the session only reaches "authenticated" after the full pipeline (password -> 2FA -> device check) completes.
+
+### 2. Two-factor authentication (2FA)
+`app/security/totp.py` + `app/routers/auth.py` (`/verify-2fa`).
+On first login the user scans a **QR code** into any authenticator app (Google Authenticator, Authy, Aegis, ...). Every subsequent login requires a fresh 30-second TOTP code; the login state machine (`PASSWORD_VERIFIED -> 2FA_REQUIRED -> AUTHENTICATED`) prevents skipping the step:
+
+```python
+# app/security/totp.py
+def verify_totp(secret: str, code: str, valid_window: int = 1) -> bool:
+    totp = pyotp.TOTP(secret)
+    return totp.verify(code, valid_window=valid_window)
+```
+
+### 3. Password hashing
+`app/security/password.py` — **Argon2id** with deliberate cost parameters. Raw passwords never touch the database or the logs:
+
+```python
+# app/security/password.py
+ph = PasswordHasher(
+    time_cost=3,        # iterations
+    memory_cost=65536,  # 64 MB of memory per hash
+    parallelism=4,
+    hash_len=32,
+    salt_len=16,
+)
+
+def hash_password(password: str) -> str:
+    return ph.hash(password)      # e.g. $argon2id$v=19$m=65536,t=3,p=4$...
+
+def verify_password(password: str, password_hash: str) -> bool:
+    try:
+        ph.verify(password_hash, password)
+        return True
+    except VerifyMismatchError:
+        return False
+```
+
+### 4. Lockout timeout after multiple failed attempts
+`app/security/auth.py` (`increment_failed_attempts`), configured in `app/config.py` — **`LOCKOUT_MAX_ATTEMPTS=5`** and **`LOCKOUT_DURATION_MINUTES=15`** (set to `3` via environment variable if the brief demands 3). The counter is only reset by a successful login; admins can unlock accounts from the admin panel:
+
+```python
+# app/security/auth.py
+def increment_failed_attempts(user_id: int):
+    with get_db_context() as db:
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user:
+            return
+        user.failed_attempts += 1
+        if user.failed_attempts >= settings.LOCKOUT_MAX_ATTEMPTS:
+            from datetime import timedelta
+            user.locked_until = utcnow() + timedelta(minutes=settings.LOCKOUT_DURATION_MINUTES)
+        db.commit()
+```
+
+While locked, `verify_credentials` refuses the login, and the UI reports the remaining minutes. Every failure and lockout is appended to the audit chain.
+
+### 5. Password recovery
+`app/services/password_reset.py` — full flowchart: user clicks *Forgot password?* -> generic "Check your inbox" response (no user enumeration) -> email carries a single-use link -> the token is stored **only as a SHA-256 hash** with a 60-minute expiry; reuse, expiry, and random-token attempts are all rejected; completing the reset invalidates every other outstanding token for that account:
+
+```python
+# app/services/password_reset.py
+def _hash_token(token: str) -> str:
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+# stored: PasswordResetToken(token_hash=..., expires_at=now + 60min)
+```
+
+### 6. Minimum password length
+Enforced twice — client-side (`minlength="12"` on the form inputs) and server-side in both `register` and `reset-password`:
+
+```python
+# app/routers/auth.py
+if len(password) < 12:
+    return templates.TemplateResponse("auth/register.html", {
+        "request": request,
+        "error": "Password must be at least 12 characters",
+        "csrf_token": get_csrf_token_for_session(request),
+    })
+```
+
+### 7. New-device login notification (email / SMS)
+`app/services/alerts.py` — on every login, the device's browser fingerprint + IP is compared with known devices. An unrecognized device raises `SECURITY_ALERT_NEW_DEVICE`: **SMS first** (Twilio) when the account has a phone number and Twilio is configured, **email otherwise** (branded Evidentia HTML via SMTP). Delivery status and failure reasons are stored on the audit chain and shown in the dashboard's Security Alerts panel:
+
+```python
+# app/services/alerts.py
+if user.phone and settings.TWILIO_ACCOUNT_SID:
+    channel = "sms"
+    delivered = send_sms(user.phone, message)
+    if not delivered:
+        reason = "sms_delivery_failed"
+
+if not delivered:
+    channel = "email"
+    delivered = send_new_device_alert(user.email, user.username,
+                                      device_name, device_id, timestamp, ip)
+    if not delivered:
+        reason = "smtp_not_configured"
+```
+
+### 8. Protection against SQL injection
+The entire data layer uses **SQLAlchemy with parameter-bound values** — no user input is ever string-concatenated into SQL, so injection payloads are treated as data, not code:
+
+```python
+# app/security/auth.py
+user = db.query(User).filter(User.username == username).first()
+# "username" is bound as a parameter, never interpolated into the query string
+```
+
+### 9. Protection against XSS
+Templates use **Jinja2 with auto-escaping enabled** — every dynamic value (`{{ error }}`, `{{ case.title }}`, ...) is HTML-escaped on render, so a hostile value can never execute as script in another user's browser:
+
+```html
+<!-- app/templates/auth/reset_password.html -->
+{% if error %}
+<div class="alert alert-danger">{{ error }}</div>
+{% endif %}
+```
+
+### 10. Protection against CSRF
+Every mutating form embeds a signed, session-bound token; the server rejects POSTs without a valid match (`app/security/csrf.py`). Tokens are time-limited and bound to the session ID, so a forged cross-site request cannot obtain one:
+
+```python
+# app/security/csrf.py
+def generate_token(self, session_id: str) -> str:
+    data = {"session_id": session_id, "nonce": secrets.token_hex(16)}
+    return self.serializer.dumps(data)
+
+def validate_token(self, token: str, session_id: str) -> bool:
+    try:
+        data = self.serializer.loads(token, max_age=self.max_age)
+        return data.get("session_id") == session_id
+    except (BadSignature, SignatureExpired, Exception):
+        return False
+```
+
+### Additional measures (not strictly required — built anyway)
+
+| Measure | Why it matters | File |
+| --- | --- | --- |
+| **SHA-256 audit hash chain** | Every action is chained to its predecessor — retroactive tampering is detectable record-by-record | `app/services/audit.py` |
+| **Signed session cookies** | Sessions can't be forged or modified (itsdangerous + server secret) | `app/security/auth.py` |
+| **Cookie hardening** | HttpOnly (JS can't read), Secure (HTTPS-only), SameSite=Lax | `app/security/auth.py` |
+| **Rate limiting** | SlowAPI caps login (5/min), register (3/min), intel (10/min), reset flows (3/min) | `app/security/rate_limit.py` |
+| **Enumeration-safe responses** | Identical messages for unknown user vs wrong password, unknown email vs sent reset link | `app/routers/auth.py` |
+| **Evidence integrity re-check** | Files are hashed again on download — swapped/corrupted evidence is flagged `Integrity Compromised` | `app/services/storage.py` |
+| **Presigned download URLs** | Object-storage links expire after 5 minutes | `app/services/storage.py` |
+| **Reset tokens hashed at rest** | A DB leak exposes no usable reset links — only their SHA-256 hashes | `app/services/password_reset.py` |
+| **Role-based access control** | `require_admin()` blocks officer access on admin routes server-side | `app/security/auth.py` |
+| **MIME whitelist + size cap** | Uploads restricted to pdf/jpeg/png/gif/txt, 100 MB max | `app/config.py` |
+| **Demo tamper/verify** | Simulate an attack and watch the hash chain expose it | `app/routers/cases.py`, `app/services/audit.py` |
 
 ---
 
