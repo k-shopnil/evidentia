@@ -17,7 +17,7 @@
         </form>
         <form method="post" action="/audit/demo-reset" class="d-inline me-2" onsubmit="return confirm('Rebuild all demo data? This wipes users, cases, evidence and the audit chain.')">
             <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-            <button type="submit" class="btn btn-warning">Reset Demo Data</button>
+            <button type="submit" class="btn btn-reset">Reset Demo Data</button>
         </form>
         {% endif %}
         <form method="post" action="/audit/verify" class="d-inline">

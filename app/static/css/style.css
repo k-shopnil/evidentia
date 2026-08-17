@@ -325,6 +325,22 @@ dd {
     --bs-btn-active-color: #000;
 }
 
+.btn-reset {
+    --bs-btn-bg: #FFFFFF;
+    --bs-btn-border-color: #FFFFFF;
+    --bs-btn-color: #0A0A0B;
+    --bs-btn-hover-bg: #E8E8E4;
+    --bs-btn-hover-border-color: #E8E8E4;
+    --bs-btn-hover-color: #0A0A0B;
+    --bs-btn-active-bg: #D9D9D5;
+    --bs-btn-active-border-color: #D9D9D5;
+    --bs-btn-active-color: #0A0A0B;
+    box-shadow: 0 2px 14px rgba(255, 255, 255, 0.12);
+}
+.btn-reset:hover {
+    box-shadow: 0 4px 20px rgba(255, 255, 255, 0.18);
+}
+
 .btn-link {
     color: var(--muted);
 }
@@ -392,6 +408,7 @@ input[type="file"]::file-selector-button {
     --bs-table-color: var(--text);
     --bs-table-border-color: var(--hairline);
     --bs-table-hover-bg: rgba(255, 255, 255, 0.025);
+    --bs-table-hover-color: var(--text);
     --bs-table-striped-bg: rgba(255, 255, 255, 0.015);
     font-size: 0.8rem;
     margin-bottom: 0;
