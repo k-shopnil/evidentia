@@ -106,6 +106,58 @@ def send_sms(to_phone: str, message: str) -> bool:
         return False
 
 
+def send_password_reset_email(
+    user_email: str,
+    username: str,
+    reset_url: str,
+    timestamp: str,
+    ttl_minutes: int,
+) -> bool:
+    subject = "[Evidentia] Reset Your Password"
+    body = f"""Password Reset Request
+
+Hello {username},
+
+A password reset was requested for your Evidentia account.
+
+Open the link below to choose a new password:
+{reset_url}
+
+This link expires in {ttl_minutes} minutes and can only be used once.
+If you did not request this, you can safely ignore this email.
+
+This is an automated security notification from Evidentia.
+"""
+    html = f"""
+<div style="background:#0A0A0B;color:#F2F2EE;font-family:Arial,Helvetica,sans-serif;padding:24px;">
+  <div style="max-width:520px;margin:0 auto;border:1px solid #212126;border-radius:10px;overflow:hidden;">
+    <div style="padding:16px 24px;border-bottom:1px solid #212126;background:#111114;">
+      <span style="color:#F8FF20;font-weight:bold;letter-spacing:2px;">EVIDENTIA</span>
+      <span style="color:#8B8B94;margin-left:8px;font-size:12px;">SECURITY NOTIFICATION</span>
+    </div>
+    <div style="padding:24px;">
+      <h2 style="color:#F8FF20;font-size:16px;margin:0 0 12px 0;">Reset your password</h2>
+      <p style="margin:0 0 16px 0;color:#8B8B94;font-size:13px;">Hello <strong style="color:#F2F2EE;">{username}</strong>, a password reset was requested for your account.</p>
+      <p style="margin:0 0 20px 0;color:#8B8B94;font-size:13px;">Use the button below to choose a new password. This link expires in <strong style="color:#F2F2EE;">{ttl_minutes} minutes</strong> and can only be used once.</p>
+      <p style="margin:0 0 8px 0;text-align:center;">
+        <a href="{reset_url}" style="display:inline-block;background:#F8FF20;color:#0A0A0B;text-decoration:none;font-weight:bold;font-size:14px;padding:12px 28px;border-radius:6px;letter-spacing:1px;">RESET PASSWORD</a>
+      </p>
+      <p style="margin:16px 0 0 0;color:#5A5A63;font-size:12px;text-align:center;word-break:break-all;">{reset_url}</p>
+      <p style="margin:16px 0 0 0;color:#8B8B94;font-size:13px;">If you did not request this, you can safely ignore this email.</p>
+      <p style="margin:24px 0 0 0;color:#5A5A63;font-size:11px;">Automated security notification from Evidentia. Do not reply.</p>
+    </div>
+  </div>
+</div>
+"""
+    return send_email(
+        user_email,
+        subject,
+        body,
+        is_html=True,
+        html_body=html,
+    )
+
+
 def send_account_locked_alert(
     user_email: str,
     username: str,

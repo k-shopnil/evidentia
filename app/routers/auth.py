@@ -339,6 +339,114 @@ async def verify_2fa_post(
     return response
 
 
+@router.get("/forgot-password", response_class=HTMLResponse)
+async def forgot_password_get(request: Request):
+    csrf_token = get_csrf_token_for_session(request)
+    return templates.TemplateResponse(
+        "auth/forgot_password.html",
+        {"request": request, "csrf_token": csrf_token},
+    )
+
+
+@router.post("/forgot-password", response_class=HTMLResponse)
+@limiter.limit("3/minute")
+async def forgot_password_post(
+    request: Request,
+    email: str = Form(...),
+    csrf_token: str = Form(...),
+):
+    session_id = session_manager.get_session_data(request).get("session_id") if session_manager.get_session_data(request) else ""
+    if not validate_csrf_token(csrf_token, session_id):
+        return templates.TemplateResponse(
+            "auth/forgot_password.html",
+            {"request": request, "error": "Invalid CSRF token", "csrf_token": get_csrf_token_for_session(request)},
+            status_code=400,
+        )
+
+    from app.services.password_reset import request_password_reset
+    base_url = str(request.base_url).rstrip("/")
+    request_password_reset(email.strip().lower(), base_url)
+
+    return templates.TemplateResponse(
+        "auth/forgot_password.html",
+        {
+            "request": request,
+            "sent": True,
+            "csrf_token": get_csrf_token_for_session(request),
+        },
+    )
+
+
+@router.get("/reset-password", response_class=HTMLResponse)
+async def reset_password_get(request: Request, token: str = ""):
+    csrf_token = get_csrf_token_for_session(request)
+    if not token:
+        return RedirectResponse(url="/forgot-password", status_code=302)
+
+    from app.services.password_reset import reset_token_is_valid
+    if not reset_token_is_valid(token):
+        return templates.TemplateResponse(
+            "auth/reset_password.html",
+            {
+                "request": request,
+                "error": "This reset link is invalid or has expired. Please request a new one.",
+                "csrf_token": csrf_token,
+            },
+            status_code=400,
+        )
+
+    return templates.TemplateResponse(
+        "auth/reset_password.html",
+        {"request": request, "token": token, "csrf_token": csrf_token},
+    )
+
+
+@router.post("/reset-password", response_class=HTMLResponse)
+@limiter.limit("3/minute")
+async def reset_password_post(
+    request: Request,
+    token: str = Form(...),
+    password: str = Form(...),
+    confirm_password: str = Form(...),
+    csrf_token: str = Form(...),
+):
+    session_id = session_manager.get_session_data(request).get("session_id") if session_manager.get_session_data(request) else ""
+    if not validate_csrf_token(csrf_token, session_id):
+        return templates.TemplateResponse(
+            "auth/reset_password.html",
+            {"request": request, "token": token, "error": "Invalid CSRF token", "csrf_token": get_csrf_token_for_session(request)},
+            status_code=400,
+        )
+
+    if not token:
+        return RedirectResponse(url="/forgot-password", status_code=302)
+
+    if password != confirm_password:
+        return templates.TemplateResponse(
+            "auth/reset_password.html",
+            {"request": request, "token": token, "error": "Passwords do not match", "csrf_token": get_csrf_token_for_session(request)},
+            status_code=400,
+        )
+
+    if len(password) < 12:
+        return templates.TemplateResponse(
+            "auth/reset_password.html",
+            {"request": request, "token": token, "error": "Password must be at least 12 characters", "csrf_token": get_csrf_token_for_session(request)},
+            status_code=400,
+        )
+
+    from app.services.password_reset import complete_password_reset
+    ok = complete_password_reset(token, password)
+    if not ok:
+        return templates.TemplateResponse(
+            "auth/reset_password.html",
+            {"request": request, "token": token, "error": "This reset link is invalid or has expired. Please request a new one.", "csrf_token": get_csrf_token_for_session(request)},
+            status_code=400,
+        )
+
+    return RedirectResponse(url="/login?msg=password-reset", status_code=302)
+
+
 @router.post("/logout")
 async def logout(
     request: Request,

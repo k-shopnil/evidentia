@@ -56,6 +56,8 @@
             <strong>DEMO:</strong> demo data rebuilt (only your admin account kept; case and evidence reseeded).
             {% elif msg == 'demo-unlocked' %}
             <strong>DEMO:</strong> account unlocked.
+            {% elif msg == 'password-reset' %}
+            <strong>Password updated.</strong> Sign in with your new password.
             {% elif msg == 'error-400' %}
             <strong>DEMO:</strong> action unavailable (already tampered / not tampered / invalid state).
             {% else %}
