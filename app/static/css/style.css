@@ -21,4 +21,21 @@ code {
 
 .navbar-brand {
     letter-spacing: 0.5px;
+    display: inline-flex;
+    align-items: center;
+}
+
+.brand-logo {
+    height: 32px;
+    width: auto;
+}
+
+.auth-logo {
+    height: 44px;
+    width: auto;
+}
+
+.footer-logo {
+    height: 20px;
+    width: auto;
 }
