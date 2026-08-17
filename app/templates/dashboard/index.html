@@ -78,7 +78,11 @@
                 <a href="/cases" class="btn btn-outline-secondary">View All Cases</a>
                 {% endif %}
                 {% else %}
-                <p class="text-muted text-center py-4">No cases yet. <a href="/cases/create">Create your first case</a></p>
+                <div class="empty-state">
+                    <div class="dot"></div>
+                    <h4>No cases yet</h4>
+                    <p><a href="/cases/create" class="btn btn-primary btn-sm mt-2">Create your first case</a></p>
+                </div>
                 {% endif %}
             </div>
         </div>
@@ -120,7 +124,11 @@
                     </table>
                 </div>
                 {% else %}
-                <p class="text-muted text-center py-4">No recent audit events</p>
+                <div class="empty-state">
+                    <div class="dot"></div>
+                    <h4>No recent audit events</h4>
+                    <p class="mb-0">System activity will appear here.</p>
+                </div>
                 {% endif %}
             </div>
         </div>

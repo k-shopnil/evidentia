@@ -107,7 +107,12 @@
             </table>
         </div>
         {% else %}
-        <p class="text-muted text-center py-4">No evidence uploaded yet. <a href="/cases/{{ case.id }}/evidence/upload">Upload evidence</a></p>
+        <div class="empty-state">
+            <div class="dot"></div>
+            <h4>No evidence uploaded</h4>
+            <p class="mb-4">Attach the first item of evidence to this case.</p>
+            <a href="/cases/{{ case.id }}/evidence/upload" class="btn btn-primary">Upload Evidence</a>
+        </div>
         {% endif %}
     </div>
 </div>

@@ -19,25 +19,14 @@
         <div class="card">
             <div class="card-header">Evidence Information</div>
             <div class="card-body">
-                <dl class="row mb-0">
-                    <dt class="col-sm-4">Original Filename</dt>
-                    <dd class="col-sm-8">{{ evidence.filename }}</dd>
-                    
-                    <dt class="col-sm-4">Stored Filename</dt>
-                    <dd class="col-sm-8"><code>{{ evidence.stored_filename }}</code></dd>
-                    
-                    <dt class="col-sm-4">File Size</dt>
-                    <dd class="col-sm-8">{{ (evidence.file_size / 1024 / 1024)|round(2) }} MB</dd>
-                    
-                    <dt class="col-sm-4">MIME Type</dt>
-                    <dd class="col-sm-8">{{ evidence.mime_type }}</dd>
-                    
-                    <dt class="col-sm-4">SHA-256 Hash</dt>
-                    <dd class="col-sm-8"><code>{{ evidence.sha256_hash }}</code></dd>
-                    
-                    <dt class="col-sm-4">Uploaded</dt>
-                    <dd class="col-sm-8">{{ evidence.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</dd>
-                </dl>
+                <div class="intel-panel">
+                    <div class="row"><div class="col-4 label">Original Filename</div><div class="col-8 value">{{ evidence.filename }}</div></div>
+                    <div class="row"><div class="col-4 label">Stored Filename</div><div class="col-8 value">{{ evidence.stored_filename }}</div></div>
+                    <div class="row"><div class="col-4 label">File Size</div><div class="col-8 value">{{ (evidence.file_size / 1024 / 1024)|round(2) }} MB</div></div>
+                    <div class="row"><div class="col-4 label">MIME Type</div><div class="col-8 value">{{ evidence.mime_type }}</div></div>
+                    <div class="row"><div class="col-4 label">SHA-256 Hash</div><div class="col-8 value acc">{{ evidence.sha256_hash }}</div></div>
+                    <div class="row"><div class="col-4 label">Uploaded</div><div class="col-8 value">{{ evidence.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</div></div>
+                </div>
             </div>
         </div>
     </div>

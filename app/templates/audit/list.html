@@ -150,7 +150,11 @@
             </ul>
         </nav>
         {% else %}
-        <p class="text-muted text-center py-4">No audit records found</p>
+        <div class="empty-state">
+            <div class="dot"></div>
+            <h4>No audit records found</h4>
+            <p class="mb-0">Adjust the filters above, or widen the date range.</p>
+        </div>
         {% endif %}
     </div>
 </div>
